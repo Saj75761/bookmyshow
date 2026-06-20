@@ -198,3 +198,15 @@ def book_seats(request,theater_id):
         return redirect('profile')
     return render(request,'movies/seat_selection.html',{'theaters':theaters,"seats":seats})
 
+def debug_env(request):
+    import os
+    db_url = os.environ.get('DATABASE_URL', '')
+    masked_url = ''
+    if db_url:
+        masked_url = db_url.split('@')[-1] if '@' in db_url else 'present'
+    return JsonResponse({
+        'has_database_url': 'DATABASE_URL' in os.environ,
+        'database_url_masked_host': masked_url,
+        'all_env_keys': [k for k in os.environ.keys() if 'SECRET' not in k and 'KEY' not in k and 'PASS' not in k]
+    })
+
