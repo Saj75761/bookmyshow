@@ -2,12 +2,36 @@ from django.db import models
 from django.contrib.auth.models import User 
 
 
+class Language(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+class Genre(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
 class Movie(models.Model):
     name= models.CharField(max_length=255)
     image= models.ImageField(upload_to="movies/")
     rating = models.DecimalField(max_digits=3,decimal_places=1)
     cast= models.TextField()
     description= models.TextField(blank=True,null=True) # optional
+    
+    # Advanced Filtering fields
+    language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, related_name='movies')
+    genres = models.ManyToManyField(Genre, blank=True, related_name='movies')
+    release_year = models.IntegerField(default=2024, db_index=True)
+    duration = models.IntegerField(default=120)  # in minutes
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['-rating']),
+            models.Index(fields=['-release_year']),
+        ]
 
     def __str__(self):
         return self.name

@@ -1,111 +1,841 @@
 {% extends "users/basic.html" %}
 
-{% block content %}
-<div class="container py-5">
-    <h1 class="text-center mb-5">Movies</h1>
+{% block title %}Explore Movies - BookMySeat{% endblock %}
 
-    <div class="row justify-content-center mb-5">
-        <div class="col-md-8">
-            <form method="GET" action="{% url 'movie_list' %}" class="search-bar">
-                <div class="input-group">
-                    <input
-                        class="form-control form-control-lg"
-                        name="search"
-                        placeholder="Search for Movies, Events, Plays, Sports and Activities"
-                        type="text"
-                        value="{{ request.GET.search|default_if_none:'' }}"
-                        aria-label="Search for movies"
-                    />
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-search"></i> Search
-                        </button>
+{% block content %}
+<div class="movie-catalog-container py-4">
+    <!-- Premium Dark Theme Styling -->
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #111827;
+            --bg-sidebar: #1f2937;
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --gold-rating: #f59e0b;
+        }
+
+        body {
+            background-color: var(--bg-main) !important;
+            color: var(--text-main) !important;
+            font-family: 'Outfit', 'Inter', sans-serif;
+        }
+
+        /* Override base layout container */
+        .container {
+            max-width: 1300px !important;
+        }
+
+        .movie-catalog-container {
+            color: var(--text-main);
+        }
+
+        /* Sidebar Styling */
+        .filter-sidebar {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 25px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .filter-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-group-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+
+        /* Scrollable lists for filters */
+        .filter-scroll-list {
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* Custom Scrollbar */
+        .filter-scroll-list::-webkit-scrollbar,
+        .queries-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .filter-scroll-list::-webkit-scrollbar-track,
+        .queries-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        .filter-scroll-list::-webkit-scrollbar-thumb,
+        .queries-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Custom Checkbox Styling */
+        .custom-control-label {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .custom-control-label span.count {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .custom-control-input:checked ~ .custom-control-label {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        /* Search input bar styling */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .search-input {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main) !important;
+            padding: 12px 20px 12px 45px;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            background-color: var(--bg-card);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Stats & Query Monitor Panel */
+        .stats-panel {
+            background: linear-gradient(135deg, #1e1b4b 0%, #111827 100%);
+            border: 1px solid #312e81;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-header {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #818cf8;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .stats-item {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            margin-right: 25px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .stats-item i {
+            color: #818cf8;
+            margin-right: 6px;
+        }
+
+        .explain-toggle {
+            font-size: 0.8rem;
+            color: #a5b4fc;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #4338ca;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .explain-toggle:hover {
+            background: #4338ca;
+            color: white;
+        }
+
+        .queries-list {
+            margin-top: 15px;
+            max-height: 180px;
+            overflow-y: auto;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8rem;
+        }
+
+        .query-log-item {
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid var(--accent-color);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .query-log-sql {
+            color: #f472b6;
+            word-break: break-all;
+        }
+
+        .query-log-meta {
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Movie Card Grid */
+        .movie-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            flex-column: column;
+            height: 100%;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-color);
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.15), 
+                        0 10px 10px -5px rgba(99, 102, 241, 0.1);
+        }
+
+        .movie-card-img-wrapper {
+            position: relative;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .movie-card-img {
+            width: 100%;
+            height: 340px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .movie-card:hover .movie-card-img {
+            transform: scale(1.05);
+        }
+
+        .movie-card-overlay {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(4px);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--gold-rating);
+            z-index: 2;
+        }
+
+        .movie-card-overlay i {
+            margin-right: 4px;
+        }
+
+        .movie-card-body {
+            padding: 18px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .movie-card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .movie-meta-row {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .movie-meta-badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .movie-genres-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .genre-badge {
+            font-size: 0.72rem;
+            background: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            font-weight: 600;
+        }
+
+        .movie-card-footer {
+            padding: 0 18px 18px;
+            background: transparent;
+            border-top: none;
+        }
+
+        .book-btn {
+            background-color: var(--accent-color);
+            color: white !important;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .book-btn:hover {
+            background-color: var(--accent-hover);
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Sorting Bar */
+        .catalog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .catalog-count {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .sort-select {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .sort-select:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
+
+        /* Custom Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 40px;
+            gap: 8px;
+        }
+
+        .pagination-btn {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin: 0 15px;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+            background-size: 200% 100%;
+            animation: loading-animation 1.5s infinite;
+        }
+
+        @keyframes loading-animation {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background-color: var(--bg-card);
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+    </style>
+
+    <!-- Main Layout Grid -->
+    <div class="row">
+        <!-- Left Column: Filters sidebar -->
+        <div class="col-md-3">
+            <div class="filter-sidebar">
+                <div class="filter-title">
+                    <span>Filters</span>
+                    <button class="btn btn-sm btn-link text-muted p-0" id="clearAllBtn" style="font-size: 0.8rem; text-decoration: none;">
+                        <i class="fas fa-redo mr-1"></i> Clear All
+                    </button>
+                </div>
+
+                <!-- Genres Multi-Select -->
+                <div class="filter-group">
+                    <div class="filter-group-label">Genres</div>
+                    <div class="filter-scroll-list" id="genreFilterList">
+                        <!-- Loaded Dynamically -->
+                        {% for genre in genres %}
+                        <div class="custom-control custom-checkbox mb-2">
+                            <input type="checkbox" class="custom-control-input genre-cb" id="genre_{{ genre.id }}" value="{{ genre.id }}">
+                            <label class="custom-control-label" for="genre_{{ genre.id }}">
+                                {{ genre.name }}
+                                <span class="count" id="genre_count_{{ genre.id }}">{{ genre.count|default:0 }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-            </form>
-        </div>
-    </div>
 
-    <div class="row" id="movieList">
-        {% for movie in movies %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                <img src="{{ movie.image.url }}" class="card-img-top" alt="{{ movie.name }}" style="height: 300px; object-fit: cover;">
-                <div class="card-body">
-                    <h5 class="card-title">{{ movie.name }}</h5>
-                    <p class="card-text">
-                        <i class="fas fa-star text-warning"></i> {{ movie.rating }}
-                    </p>
-                    <p class="card-text">
-                        <small class="text-muted">
-                            <i class="fas fa-users"></i> Cast: {{ movie.cast }}
-                        </small>
-                    </p>
-                </div>
-                <div class="card-footer bg-white border-top-0">
-                    <a href="{% url 'theater_list' movie.id %}" class="btn btn-outline-primary btn-block">
-                        View Theaters <i class="fas fa-chevron-right ml-2"></i>
-                    </a>
+                <!-- Languages Multi-Select -->
+                <div class="filter-group">
+                    <div class="filter-group-label">Language</div>
+                    <div class="filter-scroll-list" id="languageFilterList">
+                        <!-- Loaded Dynamically -->
+                        {% for lang in languages %}
+                        <div class="custom-control custom-checkbox mb-2">
+                            <input type="checkbox" class="custom-control-input language-cb" id="lang_{{ lang.id }}" value="{{ lang.id }}">
+                            <label class="custom-control-label" for="lang_{{ lang.id }}">
+                                {{ lang.name }}
+                                <span class="count" id="lang_count_{{ lang.id }}">{{ lang.count|default:0 }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
-        {% empty %}
-        <div class="col-12 text-center">
-            <p class="lead">No movies found. Try a different search term.</p>
+
+        <!-- Right Column: Movie grid + Sorting + Search + Stats -->
+        <div class="col-md-9">
+            <!-- Search bar with icon -->
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="form-control search-input w-100" id="searchInput" placeholder="Search for Movies, Cast members, or Descriptions...">
+            </div>
+
+            <!-- Stats Monitor Panel -->
+            <div class="stats-panel">
+                <div class="stats-header justify-content-between">
+                    <span><i class="fas fa-microchip mr-2"></i> SQL Performance & Timing Monitor</span>
+                    <button class="explain-toggle" id="explainToggle" type="button">
+                        <i class="fas fa-terminal mr-1"></i> Explain Query Plan
+                    </button>
+                </div>
+                <div class="stats-body">
+                    <div class="stats-item">
+                        <i class="fas fa-clock"></i> DB Execution Time: <strong class="ml-1" id="statDbTime">0.00ms</strong>
+                    </div>
+                    <div class="stats-item">
+                        <i class="fas fa-database"></i> Query Count: <strong class="ml-1" id="statQueryCount">0</strong>
+                    </div>
+                    <div class="stats-item">
+                        <i class="fas fa-tachometer-alt"></i> Execution Strategy: <strong class="ml-1 text-success">Index Optimized</strong>
+                    </div>
+                </div>
+
+                <!-- Expanded query explain logs -->
+                <div class="queries-list" id="queriesList" style="display: none;">
+                    <!-- Queries loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Sorting & Total count header -->
+            <div class="catalog-header">
+                <div class="catalog-count" id="catalogCount">
+                    Showing {{ initial_movies_count }} Movies
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="mr-2 text-muted" style="font-size: 0.85rem;">SORT BY</span>
+                    <select class="sort-select" id="sortSelect">
+                        <option value="rating_desc">Rating: High to Low</option>
+                        <option value="year_desc">Release Year: Newest</option>
+                        <option value="title_asc">Title: A to Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Movies Grid -->
+            <div class="row" id="moviesGrid">
+                <!-- Dynamically loaded movie cards will be placed here -->
+            </div>
+
+            <!-- Pagination Grid -->
+            <div class="pagination-container">
+                <button class="pagination-btn" id="prevPageBtn" disabled>
+                    <i class="fas fa-chevron-left mr-1"></i> Previous
+                </button>
+                <span class="pagination-info" id="paginationInfo">Page 1 of 1</span>
+                <button class="pagination-btn" id="nextPageBtn" disabled>
+                    Next <i class="fas fa-chevron-right ml-1"></i>
+                </button>
+            </div>
         </div>
-        {% endfor %}
     </div>
 </div>
 
-<!-- Bootstrap JS and dependencies -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-<!-- Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-
-<style>
-    .card {
-        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
-    }
-</style>
-
+<!-- AJAX Controller Logic -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    $(document).ready(function() {
-        // Add animation to cards on hover
-        $('.card').hover(
-            function() { $(this).addClass('shadow'); },
-            function() { $(this).removeClass('shadow'); }
-        );
+    $(document).ready(function () {
+        // App State
+        const state = {
+            search: '',
+            genres: [],
+            languages: [],
+            sort: 'rating_desc',
+            page: 1,
+            limit: 12
+        };
 
-        // Implement client-side filtering
-        $('input[name="search"]').on('input', function() {
-            var searchTerm = $(this).val().toLowerCase();
-            $('#movieList .col-md-4').each(function() {
-                var movieTitle = $(this).find('.card-title').text().toLowerCase();
-                if (movieTitle.includes(searchTerm)) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
+        let fetchDebounceTimeout = null;
+
+        // Hook up event listeners
+        $('#searchInput').on('input', function () {
+            state.search = $(this).val();
+            state.page = 1; // reset page
+            
+            // Debounce keyboard search inputs to avoid hammering DB
+            clearTimeout(fetchDebounceTimeout);
+            fetchDebounceTimeout = setTimeout(fetchMovies, 300);
+        });
+
+        $('#sortSelect').on('change', function () {
+            state.sort = $(this).val();
+            state.page = 1;
+            fetchMovies();
+        });
+
+        // Genres click
+        $(document).on('change', '.genre-cb', function () {
+            const val = parseInt($(this).val());
+            if ($(this).is(':checked')) {
+                state.genres.push(val);
+            } else {
+                state.genres = state.genres.filter(id => id !== val);
+            }
+            state.page = 1;
+            fetchMovies();
+        });
+
+        // Languages click
+        $(document).on('change', '.language-cb', function () {
+            const val = parseInt($(this).val());
+            if ($(this).is(':checked')) {
+                state.languages.push(val);
+            } else {
+                state.languages = state.languages.filter(id => id !== val);
+            }
+            state.page = 1;
+            fetchMovies();
+        });
+
+        // Pagination buttons
+        $('#prevPageBtn').on('click', function () {
+            if (state.page > 1) {
+                state.page--;
+                fetchMovies();
+                scrollToCatalogTop();
+            }
+        });
+
+        $('#nextPageBtn').on('click', function () {
+            state.page++;
+            fetchMovies();
+            scrollToCatalogTop();
+        });
+
+        // Clear all filters
+        $('#clearAllBtn').on('click', function () {
+            state.search = '';
+            state.genres = [];
+            state.languages = [];
+            state.sort = 'rating_desc';
+            state.page = 1;
+
+            $('#searchInput').val('');
+            $('#sortSelect').val('rating_desc');
+            $('.genre-cb').prop('checked', false);
+            $('.language-cb').prop('checked', false);
+
+            fetchMovies();
+        });
+
+        // Performance monitor toggling
+        $('#explainToggle').on('click', function () {
+            $('#queriesList').slideToggle(200);
+        });
+
+        // Scroll utility
+        function scrollToCatalogTop() {
+            $('html, body').animate({
+                scrollTop: $(".search-wrapper").offset().top - 20
+            }, 300);
+        }
+
+        // Render Skeletons during loading
+        function showSkeletons() {
+            let html = '';
+            for (let i = 0; i < 6; i++) {
+                html += `
+                <div class="col-md-4 mb-4">
+                    <div class="movie-card skeleton-card">
+                        <div class="skeleton" style="height: 340px; border-radius: 12px 12px 0 0;"></div>
+                        <div class="movie-card-body">
+                            <div class="skeleton mb-3" style="height: 20px; width: 80%;"></div>
+                            <div class="skeleton mb-2" style="height: 12px; width: 60%;"></div>
+                            <div class="skeleton mb-3" style="height: 12px; width: 45%;"></div>
+                            <div class="skeleton" style="height: 38px; border-radius: 6px; width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            $('#moviesGrid').html(html);
+        }
+
+        // Fetch movies from API
+        function fetchMovies() {
+            showSkeletons();
+
+            // Construct query parameters
+            const params = {
+                ajax: 1,
+                search: state.search,
+                sort: state.sort,
+                page: state.page,
+                limit: state.limit
+            };
+
+            if (state.genres.length > 0) {
+                params.genres = state.genres.join(',');
+            }
+            if (state.languages.length > 0) {
+                params.languages = state.languages.join(',');
+            }
+
+            $.ajax({
+                url: window.location.pathname,
+                data: params,
+                dataType: 'json',
+                success: function (data) {
+                    renderMovies(data.movies);
+                    renderFilters(data.genres, data.languages);
+                    renderPagination(data.pagination);
+                    renderStats(data.stats);
+                },
+                error: function (xhr, status, error) {
+                    console.error("AJAX Error: ", error);
+                    $('#moviesGrid').html(`
+                        <div class="col-12 text-center py-5 text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <p>Failed to load movies. Please check if backend is running.</p>
+                        </div>
+                    `);
                 }
             });
-        });
+        }
+
+        // Render movie cards dynamically
+        function renderMovies(movies) {
+            if (!movies || movies.length === 0) {
+                $('#moviesGrid').html(`
+                    <div class="col-12">
+                        <div class="empty-state">
+                            <i class="fas fa-film mb-3"></i>
+                            <h4>No Movies Found</h4>
+                            <p class="text-muted">No movies match your current search and filter selections.</p>
+                        </div>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = '';
+            movies.forEach(function (movie) {
+                const genreBadges = movie.genres.map(g => `<span class="genre-badge">${g}</span>`).join(' ');
+                
+                html += `
+                <div class="col-md-4 mb-4">
+                    <div class="movie-card">
+                        <div class="movie-card-overlay">
+                            <i class="fas fa-star text-warning"></i> ${movie.rating}
+                        </div>
+                        <div class="movie-card-img-wrapper">
+                            <img src="${movie.image_url}" class="movie-card-img" alt="${movie.name}">
+                        </div>
+                        <div class="movie-card-body">
+                            <div>
+                                <h5 class="movie-card-title">${movie.name}</h5>
+                                <div class="movie-meta-row">
+                                    <span class="movie-meta-badge">${movie.release_year}</span>
+                                    <span class="movie-meta-badge">${movie.duration} min</span>
+                                    <span class="movie-meta-badge">${movie.language}</span>
+                                </div>
+                                <div class="movie-genres-row">
+                                    ${genreBadges}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="movie-card-footer">
+                            <a href="/movies/${movie.id}/theaters" class="book-btn">
+                                Book Seat <i class="fas fa-ticket-alt ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            $('#moviesGrid').html(html);
+        }
+
+        // Update counts dynamically without recreating checkbox elements (to preserve focus/checking state)
+        function renderFilters(genres, languages) {
+            genres.forEach(function (genre) {
+                $(`#genre_count_${genre.id}`).text(genre.count);
+            });
+
+            languages.forEach(function (lang) {
+                $(`#lang_count_${lang.id}`).text(lang.count);
+            });
+        }
+
+        // Update pagination UI elements
+        function renderPagination(pagination) {
+            $('#paginationInfo').text(`Page ${pagination.page} of ${pagination.total_pages || 1}`);
+            $('#prevPageBtn').prop('disabled', !pagination.has_previous);
+            $('#nextPageBtn').prop('disabled', !pagination.has_next);
+            
+            $('#catalogCount').text(`Showing ${pagination.total_movies} Movies`);
+        }
+
+        // Render database query timings & explain plans
+        function renderStats(stats) {
+            $('#statDbTime').text(`${stats.db_time_ms}ms`);
+            $('#statQueryCount').text(stats.query_count);
+
+            let logsHtml = '';
+            if (stats.queries && stats.queries.length > 0) {
+                stats.queries.forEach(function (q, idx) {
+                    logsHtml += `
+                    <div class="query-log-item">
+                        <div class="query-log-sql"><strong>Q${idx + 1}:</strong> ${escapeHtml(q.sql)}</div>
+                        <div class="query-log-meta">
+                            <span><i class="fas fa-bolt text-warning mr-1"></i> Time: ${q.time}s</span>
+                            <span class="text-success"><i class="fas fa-shield-alt mr-1"></i> ${q.explanation}</span>
+                        </div>
+                    </div>`;
+                });
+            } else {
+                logsHtml = '<div class="text-muted p-2">Query plans are logged in Django DEBUG mode only.</div>';
+            }
+            $('#queriesList').html(logsHtml);
+        }
+
+        // Utility helper to escape HTML tags
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Fetch initial list
+        fetchMovies();
     });
 </script>
-<!-- <h1>Movies</h1>
-<ul>
-    {% for movie in movies%}
-    <li>
-        <img src="{{movie.image.url}}" alt="image" >
-        <strong>{{movie.name}}</strong>{{movie.rating}}
-        <p>Cast:{{movie.cast}}</p>
-        <a href="{% url 'theater_list' movie.id %}">View Theaters</a>
-    </li>
-    {% endfor %}
-</ul> -->
 {% endblock %}
