@@ -210,3 +210,34 @@ def debug_env(request):
         'all_env_keys': [k for k in os.environ.keys() if 'SECRET' not in k and 'KEY' not in k and 'PASS' not in k]
     })
 
+def run_migrations(request):
+    from django.core.management import call_command
+    import io
+    
+    out = io.StringIO()
+    err = io.StringIO()
+    
+    try:
+        # Run migrate
+        call_command('migrate', interactive=False, stdout=out, stderr=err)
+        migrate_out = out.getvalue()
+        
+        # Run seed_movies
+        out.seek(0)
+        out.truncate(0)
+        call_command('seed_movies', interactive=False, stdout=out, stderr=err)
+        seed_out = out.getvalue()
+        
+        return JsonResponse({
+            'status': 'success',
+            'migrate_output': migrate_out,
+            'seed_output': seed_out
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'stdout': out.getvalue(),
+            'stderr': err.getvalue()
+        })
+
