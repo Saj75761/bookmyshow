@@ -225,7 +225,7 @@ def run_migrations(request):
         # Run seed_movies
         out.seek(0)
         out.truncate(0)
-        call_command('seed_movies', interactive=False, stdout=out, stderr=err)
+        call_command('seed_movies', stdout=out, stderr=err)
         seed_out = out.getvalue()
         
         return JsonResponse({
